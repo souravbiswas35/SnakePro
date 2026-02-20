@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no,viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Snake Pro — Game</title>
+<link rel="stylesheet" href="style.css">
+<style>
+html,body{height:100%;overflow:hidden;}
+body{display:flex;flex-direction:column;align-items:center;background:#040c05;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);}
+
+/* ===== HUD ===== */
+#hud{width:100%;max-width:810px;background:linear-gradient(180deg,#040c05 0%,#09180a 100%);border-bottom:1px solid #1c4420;padding:7px 14px 5px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-shrink:0;flex-wrap:wrap;z-index:10;}
+.hud-l,.hud-r{display:flex;align-items:center;gap:6px;flex-shrink:0;}
+.hud-c{display:flex;align-items:center;gap:7px;flex:1;justify-content:center;flex-wrap:wrap;}
+.hstat{display:flex;flex-direction:column;align-items:center;background:#091508;border:1px solid #1c4420;border-radius:7px;padding:3px 11px;min-width:54px;}
+.hstat .hl{font-size:7px;letter-spacing:2px;color:#386040;text-transform:uppercase;}
+.hstat .hv{font-family:'Orbitron',monospace;font-size:17px;font-weight:700;color:#c8ff80;line-height:1.1;text-shadow:0 0 7px rgba(200,255,128,.38);}
+.hstat.gold .hv{color:#f5c518;text-shadow:0 0 7px rgba(245,197,24,.45);}
+#hudTimer{font-family:'Orbitron',monospace;font-size:21px;font-weight:900;padding:3px 14px;border-radius:7px;background:#091508;border:1px solid #1c4420;text-shadow:0 0 11px currentColor;transition:color .3s;display:none;}
+.hmd{display:flex;flex-direction:column;align-items:center;}
+.hmd .hmn{font-family:'Orbitron',monospace;font-size:9px;font-weight:700;letter-spacing:2px;color:#3aff50;}
+.hmd .hdn{font-size:8px;color:#5a9030;letter-spacing:1px;}
+.spd{display:flex;gap:3px;align-items:center;}
+.spd-dot{width:6px;height:6px;border-radius:50%;background:#172a18;border:1px solid #1c4420;transition:all .22s;}
+.spd-dot.active{background:#3aff50;box-shadow:0 0 4px rgba(58,255,80,.7);}
+.hbtn{background:#091508;border:1px solid #1c4420;border-radius:7px;padding:5px 11px;color:#5a9030;cursor:pointer;font-family:'Exo 2',sans-serif;font-size:11px;font-weight:700;transition:all .18s;-webkit-tap-highlight-color:transparent;}
+.hbtn:hover{border-color:#267030;color:#c8ff80;}
+.hbtn:active{transform:scale(.94);}
+
+/* Level bar */
+#lvBarWrap{height:3px;width:100%;max-width:810px;background:#09150a;flex-shrink:0;z-index:9;}
+#lvBarFill{height:100%;background:linear-gradient(90deg,#1a8a28,#3aff50);transition:width .4s ease;box-shadow:0 0 5px rgba(58,255,80,.55);}
+
+/* ===== GAME AREA ===== */
+#game-area{position:relative;flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden;width:100%;min-height:0;}
+#gameCanvas{display:block;touch-action:none;max-width:100%;max-height:100%;}
+
+/* ===== BOTTOM FRUIT GUIDE ===== */
+#fruit-guide{width:100%;max-width:810px;background:#040c05;border-top:1px solid #172a18;padding:4px 14px;display:flex;align-items:center;justify-content:space-around;flex-shrink:0;flex-wrap:wrap;gap:6px;z-index:10;}
+.fg{display:flex;align-items:center;gap:3px;font-size:10px;color:#3a6040;}
+.fg .fpts{color:#7abb50;font-weight:700;font-family:'Orbitron',monospace;font-size:9px;}
+
+/* ===== OVERLAYS ===== */
+.ov{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:30;background:rgba(1,6,2,.83);backdrop-filter:blur(4px);padding:16px;}
+.ov-card{background:#091508;border:1px solid #267030;border-radius:15px;padding:28px 36px;text-align:center;max-width:410px;width:100%;box-shadow:0 0 55px rgba(58,255,80,.07),0 0 0 1px rgba(58,255,80,.04);animation:ovIn .38s cubic-bezier(.34,1.56,.64,1);}
+@keyframes ovIn{from{transform:scale(.86);opacity:0;}to{transform:none;opacity:1;}}
+.ov-title{font-family:'Orbitron',monospace;font-size:32px;font-weight:900;letter-spacing:2px;color:#7fe040;margin-bottom:5px;text-shadow:0 0 18px rgba(127,224,64,.55),0 4px 0 #1a5000;animation:otPulse 2s ease-in-out infinite;}
+@keyframes otPulse{0%,100%{text-shadow:0 0 18px rgba(127,224,64,.45),0 4px 0 #1a5000;}50%{text-shadow:0 0 36px rgba(127,224,64,.88),0 4px 0 #1a5000;}}
+.ov-sub{font-size:13px;color:#5a9030;margin-bottom:20px;letter-spacing:1px;}
+.ov-score{font-family:'Orbitron',monospace;font-size:30px;font-weight:900;color:#f5c518;text-shadow:0 0 11px rgba(245,197,24,.5);margin-bottom:4px;}
+.ov-stats{display:flex;gap:14px;justify-content:center;margin-bottom:22px;flex-wrap:wrap;}
+.ovs .v{font-family:'Orbitron',monospace;font-size:16px;font-weight:700;color:#c8ff80;display:block;}
+.ovs .l{font-size:8px;letter-spacing:2px;color:#386040;text-transform:uppercase;margin-top:1px;}
+.ov-btns{display:flex;flex-direction:column;gap:8px;align-items:center;}
+.ov-pause-title{font-family:'Orbitron',monospace;font-size:30px;color:#c8ff80;text-shadow:0 0 12px rgba(200,255,128,.38);margin-bottom:6px;}
+
+/* ===== MOBILE D-PAD ===== */
+#dpad{display:none;position:fixed;bottom:max(14px,env(safe-area-inset-bottom));right:14px;z-index:40;display:none;grid-template-columns:52px 52px 52px;grid-template-rows:52px 52px;gap:5px;}
+.db{background:rgba(9,21,9,.88);border:1.5px solid #267030;border-radius:10px;color:#4aff60;font-size:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-tap-highlight-color:transparent;box-shadow:0 4px 0 #040c05,0 0 9px rgba(58,255,80,.08);transition:all .07s;touch-action:manipulation;user-select:none;}
+.db:active{transform:translateY(3px);box-shadow:0 1px 0 #040c05;background:rgba(25,60,25,.88);}
+#mb-up{grid-column:2;grid-row:1;}#mb-lt{grid-column:1;grid-row:2;}#mb-dn{grid-column:2;grid-row:2;}#mb-rt{grid-column:3;grid-row:2;}
+
+/* ===== RESPONSIVE ===== */
+@media(max-width:820px){
+  #dpad{display:grid !important;}
+  #hud{padding:5px 8px;}
+  .hstat{padding:2px 7px;min-width:46px;}
+  .hstat .hv{font-size:14px;}
+  #fruit-guide{display:none;}
+}
+@media(max-width:480px){
+  .ov-card{padding:22px 16px;}
+  .ov-title{font-size:24px;}
+  .ov-score{font-size:24px;}
+  .hstat .hv{font-size:12px;}
+}
+</style>
+</head>
+<body>
+<!-- HUD -->
+<div id="hud">
+  <div class="hud-l">
+    <button class="hbtn" onclick="goBack()">← MENU</button>
+  </div>
+  <div class="hud-c">
+    <div class="hstat"><span class="hl">Score</span><span class="hv" id="hudScore">0</span></div>
+    <div class="hstat gold"><span class="hl">Level</span><span class="hv" id="hudLevel">1</span></div>
+    <div class="hstat"><span class="hl">Length</span><span class="hv" id="hudLen">3</span></div>
+    <div id="hudTimer">90s</div>
+    <div class="hmd"><span class="hmn" id="hudMode">CLASSIC</span><span class="hdn" id="hudDiff">NORMAL</span></div>
+    <div class="spd" id="spdDots">
+      <div class="spd-dot active"></div><div class="spd-dot"></div><div class="spd-dot"></div>
+      <div class="spd-dot"></div><div class="spd-dot"></div>
+    </div>
+  </div>
+  <div class="hud-r">
+    <button class="hbtn" onclick="pauseGame()">⏸</button>
+  </div>
+</div>
+<div id="lvBarWrap"><div id="lvBarFill" style="width:0%"></div></div>
+
+<!-- GAME -->
+<div id="game-area">
+  <canvas id="gameCanvas"></canvas>
+
+  <!-- START -->
+  <div class="ov" id="ov-start">
+    <div class="ov-card">
+      <div class="ov-title">🐍 SNAKE PRO</div>
+      <div class="ov-sub" id="startDesc">Classic · Normal</div>
+      <div style="font-family:'Exo 2',sans-serif;font-size:12px;color:#386040;margin-bottom:20px;line-height:1.9;">
+        <span style="color:#5a9030">Arrow Keys / WASD</span> to move &nbsp;·&nbsp; <span style="color:#5a9030">P / ESC</span> to pause<br>
+        <span style="color:#5a9030">Swipe</span> on mobile &nbsp;·&nbsp; <span style="color:#5a9030">R</span> to restart
+      </div>
+      <div class="ov-btns">
+        <button class="btn btn-primary btn-xl" onclick="startGame()">▶ &nbsp; START</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- GAME OVER -->
+  <div class="ov" id="ov-gameover">
+    <div class="ov-card">
+      <div class="ov-title" style="color:#ff5040;text-shadow:0 0 18px rgba(255,80,64,.55),0 4px 0 #500000;animation:none;">GAME OVER</div>
+      <div class="ov-score" id="goScore">Score: 0</div>
+      <div class="ov-stats">
+        <div class="ovs"><span class="v" id="goLen">—</span><span class="l">Length</span></div>
+        <div class="ovs"><span class="v" id="goMode">—</span><span class="l">Mode</span></div>
+        <div class="ovs"><span class="v" id="goDiff">—</span><span class="l">Diff</span></div>
+        <div class="ovs"><span class="v" id="goDur">—</span><span class="l">Time</span></div>
+      </div>
+      <div class="ov-btns">
+        <button class="btn btn-primary btn-lg" onclick="startGame()">🔄 &nbsp; PLAY AGAIN</button>
+        <button class="btn btn-secondary" onclick="goBack()">← &nbsp; MENU</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAUSE -->
+  <div class="ov" id="ov-pause">
+    <div class="ov-card">
+      <div class="ov-pause-title">⏸ PAUSED</div>
+      <div class="ov-sub">Game paused</div>
+      <div class="ov-btns">
+        <button class="btn btn-primary btn-lg" onclick="resumeGame()">▶ &nbsp; RESUME</button>
+        <button class="btn btn-secondary" onclick="startGame()">🔄 &nbsp; RESTART</button>
+        <button class="btn btn-secondary" onclick="goBack()">← &nbsp; MENU</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FRUIT GUIDE -->
+<div id="fruit-guide">
+  <div class="fg">🍎 Apple <span class="fpts">+1</span></div>
+  <div class="fg">🍊 Orange <span class="fpts">+2</span></div>
+  <div class="fg">🍇 Grape <span class="fpts">+3</span></div>
+  <div class="fg">🍈 Melon <span class="fpts">+3</span></div>
+  <div class="fg">🍓 Berry <span class="fpts">+4</span></div>
+  <div class="fg">⭐ Star <span class="fpts">+5</span></div>
+</div>
+
+<!-- MOBILE D-PAD -->
+<div id="dpad">
+  <button class="db" id="mb-up">▲</button>
+  <button class="db" id="mb-lt">◄</button>
+  <button class="db" id="mb-dn">▼</button>
+  <button class="db" id="mb-rt">►</button>
+</div>
+
+<script src="game.js"></script>
+<script>
+// Load and display mode/diff on start screen
+(function(){
+  try{
+    const s=JSON.parse(localStorage.getItem('sp2_cfg')||'{}');
+    const ml={classic:'Classic Mode',endless:'Endless Mode',timed:'Time Attack (90s)',maze:'Maze Mode',blitz:'Fruit Blitz',zen:'Zen Mode'};
+    const dl={easy:'Easy',normal:'Normal',hard:'Hard',insane:'Insane'};
+    const el=document.getElementById('startDesc');
+    if(el) el.textContent=(ml[s.mode||'classic']||'Classic')+' · '+(dl[s.diff||'normal']||'Normal');
+  }catch(e){}
+})();
+</script>
+</body>
+</html>
